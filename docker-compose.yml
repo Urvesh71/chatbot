@@ -3,7 +3,7 @@ services:
   ollama:
     image: ollama/ollama:latest
     ports:
-      - 11434:11434
+     - 11434:11434
     healthcheck:
       test: ollama --version || exit 1
     command: serve
@@ -21,58 +21,39 @@ services:
       - 3000:8080
 
     environment:
-      SEARXNG_URL: "http://searxng:8080"
-      ENABLE_RAG_WEB_SEARCH: "True"
+      SEARXNG_URL: http://searxng:8080
+      ENABLE_RAG_WEB_SEARCH: True
       RAG_WEB_SEARCH_ENGINE: "searxng"
       RAG_WEB_SEARCH_RESULT_COUNT: 4
       RAG_WEB_SEARCH_CONCURRENT_REQUESTS: 12
+      SEARXNG_QUERY_URL: "http://searxng:8080/search?q=<query>"
       OLLAMA_BASE_URL: "http://ollama:11434"
+      # SEARXNG_QUERY_URL: http://searxng.local/search?q=<query>
 
     volumes:
       - open-webui:/app/backend/data
     depends_on:
-      - ollama
+     - searxng
+     - ollama
     restart: always
     networks:
       - web
 
-  postgres:
-    image: postgres:latest
-    restart: always
-    environment:
-      POSTGRES_DB: your_database
-      POSTGRES_USER: your_username
-      POSTGRES_PASSWORD: your_password
-    volumes:
-      - db_data:/var/lib/postgresql/data
-    networks:
-      - web
-
-  pipelines:
-    image: ghcr.io/open-webui/pipelines:main
-    container_name: pipelines
+  searxng:
+    image: searxng/searxng:latest
     ports:
-      - 9099:9099
-    restart: always
+      - '8080:8080'
     networks:
       - web
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
-      - pipelines:/app/pipelines
-    depends_on:
-      - webui
-      - postgres
-    environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: your_database
-      DB_USER: your_username
-      DB_PASSWORD: your_password
+      - ./settings.yml:/etc/searxng/settings.yml
+
+    restart: always
 
 volumes:
   ollama: {}
   open-webui: {}
+  searxng: {}
 
 networks:
   web:
